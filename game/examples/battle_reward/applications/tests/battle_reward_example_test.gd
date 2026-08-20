@@ -10,8 +10,8 @@ func test_battle_reward_example_scene_can_start() -> void:
 
 	add_child(application)
 
-	var reward_feature := application.get_node("RewardFeature") as ExampleRewardFeature
 	assert_object(application).is_instanceof(ExampleBattleRewardApplication)
 	assert_bool(application.is_inside_tree()).is_true()
-	assert_int(reward_feature.get_score_snapshot().total_score).is_equal(100)
-	assert_array(reward_feature.get_score_snapshot().awards).contains_exactly(100)
+	assert_object(application.reward_feature).is_instanceof(ExampleRewardFeature)
+	assert_int(application.reward_feature.get_score_snapshot().total_score).is_equal(100)
+	assert_array(application.reward_feature.get_score_snapshot().awards).contains_exactly(100)

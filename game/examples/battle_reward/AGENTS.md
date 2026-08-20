@@ -4,11 +4,11 @@
 
 该样例用一个最小的战斗奖励流程展示 Godot Framework 的职责边界：
 
-- `ExampleBattleRewardApplication` 只负责查找节点和注入依赖。
+- `ExampleBattleRewardApplication` 只负责校验场景绑定并注入依赖，不查找节点。
 - `ExampleRewardFeature` 协调两个互不依赖的 Module。
 - `ExampleBattleModule` 处理击败敌人的 Command，并先发送领域 Event，再发送完成 Event。
 - `ExampleScoreModule` 处理加分 Command，并通过隔离的 Snapshot 提供查询结果。
-- `ExampleBattleRewardDemo` 是样例入口调用方，不把演示业务写进 Application。
+- `ExampleBattleRewardDemo` 是 Reward Feature 的样例呈现调用方，不把演示行为写进 Application。
 
 ## 运行
 

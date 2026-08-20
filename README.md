@@ -15,6 +15,11 @@ game/
   docs/
 ```
 
+一次运行只有一个 Application，它只承担入口组合。Feature 表示完整的用户功能并可协调零个或多个
+Module；Module 拥有内聚领域能力。`game/arts` 只保存不含脚本、碰撞、物理和玩法状态的纯美术，
+Feature/Module 引用美术并加入业务节点后形成的场景归各自 `scenes`。`game/tools` 是 GF Tool 职责，
+仓库级生成、验证和构建脚本使用根目录 `tools`。
+
 安装时将 Release ZIP 中的 `addons/godot_framework` 合并到目标 Godot 项目。Framework 不包含需要启用
 的 EditorPlugin；等待脚本导入完成后即可使用 `GF` 前缀类型。
 

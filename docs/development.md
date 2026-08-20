@@ -14,8 +14,11 @@ game/
   docs/
 ```
 
-`game/arts` 用于项目自有或可选复制的美术资源；框架运行时代码不得依赖其中内容。插件内部按职责使用
-`applications`、`features`、`modules`、`tools`，框架自身的 `base` 与 `rules` 保持不变。
+`game/applications` 只保存唯一入口的脚本、场景、测试和规则文件，不建立业务 `scenes` 或资源目录。
+`game/arts` 用于项目自有或可选复制的纯美术资源；其中内容不得包含业务脚本、碰撞体、物理体或玩法
+状态。Feature/Module 引用纯美术并加入业务节点后形成的游戏场景归各自职责目录。插件内部按职责使用
+`applications`、`features`、`modules`、`tools`，框架自身的 `base` 与 `rules` 保持不变；仓库自动化脚本
+位于根 `tools`，不与 `game/tools` 的 GF Tool 职责混用。
 
 ## 验证
 

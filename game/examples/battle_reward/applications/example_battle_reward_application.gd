@@ -1,12 +1,17 @@
 class_name ExampleBattleRewardApplication
 extends GFApplication
 
+@export var battle_module: ExampleBattleModule
+@export var score_module: ExampleScoreModule
+@export var reward_feature: ExampleRewardFeature
+@export var demo: ExampleBattleRewardDemo
+
 
 func compose() -> void:
-	var battle_module := get_node("BattleModule") as ExampleBattleModule
-	var score_module := get_node("ScoreModule") as ExampleScoreModule
-	var reward_feature := get_node("RewardFeature") as ExampleRewardFeature
-	var demo := get_node("Demo") as ExampleBattleRewardDemo
+	assert(battle_module != null, "BattleModule 必须由场景显式绑定。")
+	assert(score_module != null, "ScoreModule 必须由场景显式绑定。")
+	assert(reward_feature != null, "RewardFeature 必须由场景显式绑定。")
+	assert(demo != null, "Demo 必须由场景显式绑定。")
 
 	reward_feature.configure(battle_module, score_module)
 	demo.configure(reward_feature)

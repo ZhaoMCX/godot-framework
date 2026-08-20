@@ -8,9 +8,10 @@ func configure(reward_feature: ExampleRewardFeature) -> void:
 	_reward_feature = reward_feature
 	_reward_feature.defeat_completed.connect(_on_defeat_completed)
 	_reward_feature.score_changed.connect(_on_score_changed)
+	_run_demo()
 
 
-func _ready() -> void:
+func _run_demo() -> void:
 	var first_submission := _reward_feature.defeat_enemy(&"slime_01", 100)
 	print("[BattleReward] first_submission.accepted=%s" % first_submission.accepted)
 
