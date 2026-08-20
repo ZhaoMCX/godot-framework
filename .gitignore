@@ -1,0 +1,14 @@
+# Godot-generated editor and import cache.
+/.godot/
+
+# Local build artifacts; keep only the marker that hides them from Godot's
+# resource scanner.
+/builds/*
+!/builds/.gdignore
+
+# GDUnit4 output is generated, but keep the marker that hides it from Godot's
+# resource scanner.
+/reports/*
+!/reports/.gdignore
+
+# Keep Godot .uid files and source-side .import metadata in version control.

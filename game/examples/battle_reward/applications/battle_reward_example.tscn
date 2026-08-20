@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://cbhmah6v0msyc"]
+
+[ext_resource type="Script" uid="uid://d4b0bbbhprb61" path="res://game/examples/battle_reward/applications/example_battle_reward_application.gd" id="1_s1fwt"]
+[ext_resource type="Script" uid="uid://ig2giikklanh" path="res://game/examples/battle_reward/modules/battle/example_battle_module.gd" id="2_umwpj"]
+[ext_resource type="Script" uid="uid://can61ory2u0ml" path="res://game/examples/battle_reward/modules/score/example_score_module.gd" id="3_lpmrb"]
+[ext_resource type="Script" uid="uid://cfedffba0co8f" path="res://game/examples/battle_reward/features/reward/example_reward_feature.gd" id="4_qtmrr"]
+[ext_resource type="Script" uid="uid://l20jipio5vgw" path="res://game/examples/battle_reward/applications/example_battle_reward_demo.gd" id="5_stcta"]
+
+[node name="BattleRewardExample" type="Node" unique_id=98838618]
+script = ExtResource("1_s1fwt")
+
+[node name="BattleModule" type="Node" parent="." unique_id=115231309]
+script = ExtResource("2_umwpj")
+
+[node name="ScoreModule" type="Node" parent="." unique_id=1303352392]
+script = ExtResource("3_lpmrb")
+
+[node name="RewardFeature" type="Node" parent="." unique_id=8447719]
+script = ExtResource("4_qtmrr")
+
+[node name="Demo" type="Node" parent="." unique_id=645380586]
+script = ExtResource("5_stcta")
