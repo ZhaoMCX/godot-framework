@@ -1,4 +1,4 @@
-# Godot Framework 0.1.1
+# Godot Framework
 
 将本目录放到项目的 `addons/godot_framework` 后即可使用。该 addon 是纯运行时脚本库，不需要在
 Project Settings 中启用。
