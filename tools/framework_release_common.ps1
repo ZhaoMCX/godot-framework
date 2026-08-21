@@ -105,3 +105,54 @@ function Read-GFChecksum {
     }
     return $match.Groups[1].Value.ToUpperInvariant()
 }
+
+function Test-GFOfficialRemote {
+    param([Parameter(Mandatory = $true)][string]$RemoteUrl)
+
+    $pattern = '^(?:https://github\.com/ZhaoMCX/godot-framework(?:\.git)?|' +
+        'git@github\.com:ZhaoMCX/godot-framework(?:\.git)?|' +
+        'ssh://git@ssh\.github\.com(?::443)?/ZhaoMCX/godot-framework(?:\.git)?)$'
+    return [regex]::IsMatch($RemoteUrl, $pattern, [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+}
+
+function Assert-GFPublishState {
+    param(
+        [Parameter(Mandatory = $true)][string]$TagName,
+        [Parameter(Mandatory = $true)][bool]$WorktreeClean,
+        [Parameter(Mandatory = $true)][bool]$RemoteIsOfficial,
+        [Parameter(Mandatory = $true)][string]$CurrentBranch,
+        [Parameter(Mandatory = $true)][string]$HeadCommit,
+        [Parameter(Mandatory = $true)][string]$RemoteMasterCommit,
+        [string]$LocalTagCommit = "",
+        [string]$RemoteTagCommit = "",
+        [bool]$LocalTagAnnotated = $false,
+        [bool]$RemoteTagAnnotated = $false,
+        [ValidateSet("missing", "draft", "published")][string]$ReleaseState = "missing"
+    )
+
+    if (-not $WorktreeClean) {
+        throw "Framework publishing requires a clean worktree."
+    }
+    if (-not $RemoteIsOfficial) {
+        throw "The origin remote is not the official Framework repository."
+    }
+    if ($CurrentBranch -ne "master") {
+        throw "Framework publishing must run from master, not '$CurrentBranch'."
+    }
+    if (-not $HeadCommit.Equals($RemoteMasterCommit, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Local master must exactly match origin/master."
+    }
+    if (-not $LocalTagCommit -or -not $RemoteTagCommit) {
+        throw "Tag $TagName must exist both locally and on origin."
+    }
+    if (-not $LocalTagAnnotated -or -not $RemoteTagAnnotated) {
+        throw "Tag $TagName must be an annotated tag locally and on origin."
+    }
+    if (-not $HeadCommit.Equals($LocalTagCommit, [StringComparison]::OrdinalIgnoreCase) -or
+        -not $HeadCommit.Equals($RemoteTagCommit, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Tag $TagName must point to the current master commit."
+    }
+    if ($ReleaseState -eq "published") {
+        throw "Published release $TagName already exists and cannot be overwritten."
+    }
+}
