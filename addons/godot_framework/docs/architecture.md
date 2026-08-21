@@ -42,6 +42,22 @@ Feature 和 Module 都不得相互依赖同层职责单元。跨 Module 行为�
 协调；模块通信只能使用明确的 Command、Query 和 Event 契约。不得通过跨层访问、共享可变状态
 或全局消息总线绕过边界。
 
+### 职责根与内部 Node 组件
+
+Application、Feature、Module、Tool 描述职责边界，不规定每个职责只能有一个 Node，也不把生命周期
+逻辑都塞进职责根。Feature 与 Module 根 Node 是该职责的公开 API、所有权和生命周期协调者；持续执行的
+`_process`、`_physics_process`、输入、绘制和物理行为应由职责内部的原生 Node 组件承担。
+
+“组件”只是职责内部的架构术语，不是第五种 GF 职责，也没有统一的 `GFComponent` 基类。内部 Node：
+
+- 继承所属职责的依赖上限，不得借组件绕过 `Application -> Feature -> Module -> Tool`。
+- 放在所属职责目录中，测试也放在该职责的 `tests` 子目录。
+- 可以通过具体类型直接调用同职责内部对象；CQRS 只约束职责公开边界。内部信号仍只传递 Event。
+- 由实际拥有其场景的对象创建和销毁；长期职责根不得抢夺短生命周期 Node 的场景所有权。
+
+职责根可以执行依赖校验、`configure`、公开 Command/Query、Event 协调、强类型 attach/detach 和退出清理；
+它不应仅因为自身是 Module 或 Feature 就承担每帧或物理回调。
+
 ### CQRS 与联网一致性
 
 Command 表达变更意图，Query 读取隔离快照，Event 表达已经发生的事实。Command 的同步返回值
@@ -124,6 +140,17 @@ Command、Query、Event 与生命周期。职责外部只能引用 `public`。
 
 ## 生命周期与场景组合
 
+GF 使用五种语义生命周期范围描述 Node 的预期寿命：
+
+- **Application**：从唯一 Application 组合完成到本次运行退出。
+- **Session**：可选的会话范围，仅在项目确实存在独立会话所有者时使用。
+- **Scene**：随一个业务场景实例进入和离开 SceneTree。
+- **Entity**：随一个运行时实体实例创建和销毁。
+- **Transient**：一次短流程、临时效果或临时交互的持续时间。
+
+这些范围是设计和文档语义，不是需要注册的 Scope 类型，也不要求建立通用管理器。项目只实现真实存在的
+范围，不得为了补齐层次创建空的 Session 或 Scene 管理职责。
+
 - 每次 SceneTree 运行只能存在一个活动的 Application。测试或独立样例可以拥有各自入口，但不能在
   同一次运行中组合多个 Application。
 - Application 级管理器、Module、Feature 和 Feature UI 是 Application 场景声明并持有的 Node。
@@ -143,6 +170,20 @@ Command、Query、Event 与生命周期。职责外部只能引用 `public`。
 子节点的 `_ready()` 早于 Application 组合，因此 Feature 和 Module 不得在那里使用尚未注入的依赖；
 依赖初始化由 Application 调用显式 `configure` 完成。Feature 在依赖注入后连接信号，并在离开场景树时
 断开自己拥有的连接。
+
+长生命周期职责引用短生命周期 Node 时，必须提供职责专用的强类型 attach/detach API，例如
+`attach_actor(actor: CharacterMotionActor)`，不得提供通用 `attach(Node)`、全局注册表、服务定位器或
+反射扫描。生命周期 API 是本地组合边界，可以传递强类型 Node；Command、Event 和可联网 payload 仍不得
+携带 Node 身份。
+
+推荐顺序如下：
+
+1. 短生命周期所有者创建 Node，且在外部依赖未就绪前保持处理禁用。
+2. 长生命周期职责通过强类型 attach 校验实例、连接所需 Event，并在成功后启用行为。
+3. detach 先禁用行为、断开连接并清空引用。
+4. 原场景所有者随后销毁 Node。
+
+attach 冲突、重复 attach 和 detach 非当前实例的处理方式必须由具体职责公开契约明确，不由 GF 隐式决定。
 
 Application 目录不拥有额外场景或资源；入口场景只负责挂载职责节点和绑定依赖。Feature 的场景、UI
 和功能专用配置归属该 Feature，Module 的游戏实体场景和领域配置归属该 Module。它们可以引用

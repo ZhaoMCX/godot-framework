@@ -83,6 +83,26 @@ Tool 对象、值对象和无场景所有权的配置辅助对象可以由代码
 
 不得使用业务 Autoload、服务定位器、全局消息总线、反射扫描或共享可变单例来绕过组合根。
 
+### 职责内部组件与跨范围连接
+
+Feature 和 Module 根是职责/API/所有权/生命周期协调者，不要求亲自执行每个 Godot 回调。输入、绘制、
+物理、逐帧更新等行为可拆到职责场景内的原生 Node 组件；GF 不定义 `GFComponent`，组件也不构成第五层。
+组件继承所属职责的依赖上限，放在所属职责目录并由该职责测试。
+
+插件可用 Application、Session、Scene、Entity、Transient 标注 Node 的语义寿命，但不得把这些标注实现成
+强制 Scope 基类或全局管理器。Session 是可选范围，没有实际会话所有者时不创建空职责。
+
+当 Application 范围的 Feature/Module 需要操作 Scene 或 Entity 范围 Node 时：
+
+1. 短生命周期场景所有者创建并最终销毁 Node。
+2. Node 在外部依赖未注入前禁用 `_process`、`_physics_process` 和输入。
+3. 长生命周期职责通过业务专用、强类型 attach API 校验、连接并启用。
+4. detach 先禁用、断开、清空引用，随后由原所有者释放。
+
+不得用通用 `attach(Node)`、全局注册表、服务定位器或反射扫描替代显式 API。生命周期 API 属于本地场景
+组合，可传递强类型 Node；公开 Command、Event 和可联网 payload 仍只能传递值与稳定 ID。职责内部组件
+使用直接强类型调用，CQRS 只约束职责公开边界；内部 Signal 仍只传递 Event。
+
 ### Feature 场景与 UI
 
 Feature 的场景、UI 和功能专用配置放在该 Feature 的 `scenes/`、`resources/` 等目录中。Feature 可以
