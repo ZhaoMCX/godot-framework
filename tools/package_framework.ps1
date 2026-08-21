@@ -37,7 +37,15 @@ try {
         Sort-Object FullName -Descending |
         Remove-Item -Recurse -Force
 
-    foreach ($required in @("AGENTS.md", "LICENSE", "README.md", "version.cfg", "base\gf_application.gd")) {
+    $requiredFiles = @(
+        "AGENTS.md"
+        "LICENSE"
+        "README.md"
+        "version.cfg"
+        "docs\update.md"
+        "base\gf_application.gd"
+    )
+    foreach ($required in $requiredFiles) {
         if (-not (Test-Path -LiteralPath (Join-Path $addonTarget $required))) {
             throw "Package is missing required content: $required"
         }
