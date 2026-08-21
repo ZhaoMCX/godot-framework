@@ -59,6 +59,21 @@ game/
 `%UniqueNode` 或基于这些路径的 `@onready`。只有运行时创建、数量不定、来自外部数据或设计期路径
 不可知的 Node 才允许动态解析，且必须验证类型并处理缺失节点。
 
+## Node 组件与生命周期范围
+
+Module 和 Feature 是职责根，不是所有执行逻辑的容器。一个职责可以在自己的场景中提供多个内部 Node：
+例如输入组件处理 `_input`，运动电机处理 `_physics_process`，HUD 组件处理绘制；职责根只负责公开 API、
+依赖配置、事件协调和清理。GF 不提供 `GFComponent`，这些组件直接使用合适的 Godot 原生 Node 类型，且
+仍受所属职责的依赖方向和测试边界约束。
+
+文档可使用 Application、Session、Scene、Entity、Transient 描述预期寿命。它们只是语义范围，不是运行时
+Scope 系统；只在项目真实需要时使用。长生命周期职责连接短生命周期 Node 时，使用职责专用的强类型
+attach/detach API。短生命周期所有者负责创建和销毁；attach 前保持行为禁用，detach 时先禁用、断开和
+清空引用，再由所有者释放。不要建立通用 `attach(Node)`、注册表、服务定位器或反射发现机制。
+
+职责内部组件可以直接进行强类型调用；Command、Query、Event 约束职责公开边界。生命周期 API 可以在
+本地组合中接收强类型 Node，但 Command、Event 和可联网数据仍不得包含 Node 身份。
+
 ## CQRS 使用边界
 
 - Command 是不可变的变更意图，通过显式强类型 API 提交。

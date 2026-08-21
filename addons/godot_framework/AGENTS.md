@@ -54,6 +54,16 @@
   使用仓库根 `tools`。
 - `GFApplication` 默认在 `_ready()` 组合，此时场景声明的类型化子节点引用已经解析。Feature 和 Module
   不得在自己的 `_ready()` 中使用尚未注入的 Application 依赖；依赖初始化由显式 `configure` 完成。
+- Feature 和 Module 是职责根，不是单 Node 实现限制。职责内部可使用原生 Node 组件承载输入、绘制、
+  `_process`、`_physics_process` 和物理行为；不新增 `GFComponent` 或第五种 GF 职责。组件继承所属职责的
+  依赖上限、目录归属和测试边界。
+- 生命周期语义使用 Application、Session（可选）、Scene、Entity、Transient；这些名称不是运行时 Scope
+  类型或通用管理器。只实现实际存在的范围，不为补齐层次创建空职责。
+- 长生命周期职责引用短生命周期 Node 时，由短生命周期场景所有者创建和销毁，并通过职责专用的强类型
+  attach/detach API 连接。attach 前禁用行为；detach 先禁用、断开并清空引用。禁止通用 `attach(Node)`、
+  全局注册表、服务定位器和反射扫描。
+- 生命周期 API 可在本地组合边界传递强类型 Node；Command、Event 和可联网 payload 仍不得携带 Node。
+  CQRS 约束职责公开边界，职责内部组件可直接强类型调用；内部 Signal 仍只传递 Event。
 - 不引用其他职责单元的 `internal` 目录。
 - 保持显式组合，不添加 autoload、服务定位器、全局消息总线或反射扫描。
 - 每个独立职责类以及每个 Command、Event、Snapshot、API、Adapter、Validator 和测试替身单文件存放。

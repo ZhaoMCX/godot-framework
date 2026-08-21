@@ -8,6 +8,10 @@ Project Settings 中启用。
 只保存纯美术。`game/tools` 是 GF Tool 职责，仓库自动化脚本应放在项目根 `tools`。详细判定见使用和
 架构文档。
 
+Feature 和 Module 可以由多个原生 Node 组件组成；职责根负责公开边界和生命周期协调，不要求亲自承担
+输入、逐帧、物理或绘制回调。GF 以 Application、可选 Session、Scene、Entity、Transient 表达语义寿命，
+不提供通用 Scope 管理器或 `GFComponent`。跨寿命连接使用职责专用的强类型 attach/detach API。
+
 - 使用说明：`docs/usage.md`
 - 更新说明：`docs/update.md`
 - 架构规则：`docs/architecture.md`
