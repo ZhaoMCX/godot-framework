@@ -69,6 +69,50 @@ try {
     Assert-Throws {
         Read-GFChecksum -Path $checksumPath -ExpectedFileName "package.zip"
     } "A checksum file with extra content was accepted."
+
+    Assert-True (Test-GFOfficialRemote -RemoteUrl "https://github.com/ZhaoMCX/godot-framework.git") `
+        "The official HTTPS remote was rejected."
+    Assert-True (Test-GFOfficialRemote -RemoteUrl "git@github.com:ZhaoMCX/godot-framework.git") `
+        "The official SSH remote was rejected."
+    Assert-True (-not (Test-GFOfficialRemote -RemoteUrl "https://github.com/example/godot-framework.git")) `
+        "An unofficial remote was accepted."
+
+    $validPublishState = @{
+        TagName = "v0.1.2"
+        WorktreeClean = $true
+        RemoteIsOfficial = $true
+        CurrentBranch = "master"
+        HeadCommit = "abc123"
+        RemoteMasterCommit = "abc123"
+        LocalTagCommit = "abc123"
+        RemoteTagCommit = "abc123"
+        LocalTagAnnotated = $true
+        RemoteTagAnnotated = $true
+        ReleaseState = "missing"
+    }
+    Assert-GFPublishState @validPublishState
+
+    $draftPublishState = $validPublishState.Clone()
+    $draftPublishState.ReleaseState = "draft"
+    Assert-GFPublishState @draftPublishState
+
+    $invalidPublishStates = @(
+        @{ Name = "dirty worktree"; Key = "WorktreeClean"; Value = $false }
+        @{ Name = "unofficial remote"; Key = "RemoteIsOfficial"; Value = $false }
+        @{ Name = "non-master branch"; Key = "CurrentBranch"; Value = "feature" }
+        @{ Name = "stale master"; Key = "RemoteMasterCommit"; Value = "def456" }
+        @{ Name = "missing local tag"; Key = "LocalTagCommit"; Value = "" }
+        @{ Name = "missing remote tag"; Key = "RemoteTagCommit"; Value = "" }
+        @{ Name = "lightweight local tag"; Key = "LocalTagAnnotated"; Value = $false }
+        @{ Name = "lightweight remote tag"; Key = "RemoteTagAnnotated"; Value = $false }
+        @{ Name = "misdirected tag"; Key = "RemoteTagCommit"; Value = "def456" }
+        @{ Name = "published release"; Key = "ReleaseState"; Value = "published" }
+    )
+    foreach ($invalidCase in $invalidPublishStates) {
+        $state = $validPublishState.Clone()
+        $state[$invalidCase.Key] = $invalidCase.Value
+        Assert-Throws { Assert-GFPublishState @state } "Publish state accepted: $($invalidCase.Name)."
+    }
 } finally {
     if (Test-Path -LiteralPath $temporaryRoot) {
         Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
