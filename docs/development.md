@@ -25,7 +25,7 @@ game/
 在仓库根目录执行无界面测试：
 
 ```powershell
-godot --headless --path . -s addons/gdUnit4/bin/GdUnitCmdTool.gd -a addons/godot_framework/tests -a game/tests
+godot --headless --path . -s addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a addons/godot_framework -a game
 ```
 
 Godot 可执行文件名称因本机安装方式而异。场景和资源修改仍须遵守对应 `AGENTS.md` 中的 Godot AI MCP
@@ -41,5 +41,6 @@ Godot 可执行文件名称因本机安装方式而异。场景和资源修改�
 `builds/godot-framework-<version>.zip` 及 SHA-256 文件。压缩包根目录固定为
 `addons/godot_framework`，不会包含测试、游戏工程、工具缓存或报告。
 
-当前首个发布版本为 `v0.1.0`。其他游戏和功能插件通过本地替换
+首个发布版本为 `v0.1.0`；`v0.1.1` 起正式插件包内提供 Agent 更新协议。已发布的标签、ZIP 和校验文件
+保持不可变，后续更新必须提升 `version.cfg` 版本并创建新 Release。其他游戏和功能插件通过本地替换
 `addons/godot_framework` 后运行各自测试来反馈框架兼容性，不设置跨仓库 CI。

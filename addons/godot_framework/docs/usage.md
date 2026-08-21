@@ -35,12 +35,19 @@ game/
 将 `addons/godot_framework` 放入 Godot 项目后等待脚本导入即可使用。该插件不包含需要启用的
 `EditorPlugin`，也不注册 autoload；导入完成后，`GF` 前缀的全局类可以直接引用。
 
+## 更新方式
+
+使用 `v0.1.1` 或更高版本时，可以让编码 Agent“更新 GF 插件”或“升级 GF 插件”。Agent 必须先读取
+`AGENTS.md` 和 `docs/update.md`，验证官方 Release、SHA-256 与本地修改后整目录替换插件。更新不得采用
+合并覆盖，也不包含消费项目代码迁移；完整安全流程和首次接入说明见 `docs/update.md`。
+
 ## 核心入口
 
 - `base`：`GFApplication`、`GFFeature`、`GFModule` 等架构基础类型。
 - `rules`：所有层共享的契约，当前包含 `rules/cqrs`。
 - `docs/architecture.md`：四层依赖、场景组合、CQRS 和测试边界。
 - `docs/plugin_development.md`：基于 GF 开发可复用功能插件的完整规范。
+- `docs/update.md`：Agent 执行 GF 插件更新时的来源、校验、替换和失败处理协议。
 
 框架核心自身不包含具体游戏的 Application、Feature、Module 或 Tool。游戏唯一入口继承
 `GFApplication`，在场景中显式声明并注入需要长期存在的 Module、Feature 和 Feature UI；能够由
