@@ -1,0 +1,183 @@
+name: GF Release
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release-framework.yml"
+      - "addons/godot_framework/**"
+      - "game/**"
+      - "tools/**"
+      - "project.godot"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Framework release
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release metadata
+        id: metadata
+        shell: pwsh
+        run: |
+          . ./tools/framework_release_common.ps1
+          $metadata = Get-GFMetadata -Path ./addons/godot_framework/version.cfg
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            if ($env:GITHUB_REF_NAME -notmatch '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') {
+              throw "Release tags must use v<stable-semver>: $env:GITHUB_REF_NAME"
+            }
+            $tagVersion = $env:GITHUB_REF_NAME.Substring(1)
+            if ($tagVersion -ne $metadata.Version) {
+              throw "Tag version '$tagVersion' does not match version.cfg '$($metadata.Version)'."
+            }
+            git fetch origin master --no-tags
+            git merge-base --is-ancestor $env:GITHUB_SHA origin/master
+            if ($LASTEXITCODE -ne 0) {
+              throw "Release tag commit must belong to the master branch history."
+            }
+          }
+          "version=$($metadata.Version)" >> $env:GITHUB_OUTPUT
+          "godot_version=$($metadata.GodotVersion)" >> $env:GITHUB_OUTPUT
+
+      - name: Test release scripts
+        shell: pwsh
+        run: ./tools/tests/framework_release_scripts_test.ps1
+
+      - name: Download official Godot build
+        id: godot
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $godotVersion = "${{ steps.metadata.outputs.godot_version }}"
+          $releaseTag = "$godotVersion-stable"
+          $assetName = "Godot_v$releaseTag`_win64.exe.zip"
+          $release = gh api "repos/godotengine/godot-builds/releases/tags/$releaseTag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to read the official Godot release $releaseTag."
+          }
+          $assets = @($release.assets | Where-Object { $_.name -eq $assetName })
+          if ($assets.Count -ne 1) {
+            throw "The official Godot release must contain exactly one $assetName asset."
+          }
+          $asset = $assets[0]
+          if ($asset.digest -notmatch '^sha256:([0-9a-fA-F]{64})$') {
+            throw "The official Godot asset does not provide a SHA-256 digest."
+          }
+          $downloadRoot = Join-Path $env:RUNNER_TEMP "godot-$godotVersion"
+          New-Item -ItemType Directory -Path $downloadRoot -Force | Out-Null
+          $archivePath = Join-Path $downloadRoot $assetName
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $archivePath
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
+          if ($actualHash -ne $Matches[1]) {
+            throw "The downloaded Godot asset does not match its official digest."
+          }
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $downloadRoot
+          $consoleName = "Godot_v$releaseTag`_win64_console.exe"
+          $executables = @(Get-ChildItem -LiteralPath $downloadRoot -Recurse -File |
+            Where-Object { $_.Name -eq $consoleName })
+          if ($executables.Count -ne 1) {
+            throw "Unable to locate $consoleName after extraction."
+          }
+          "executable=$($executables[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Validate and package Framework
+        shell: pwsh
+        run: >-
+          ./tools/validate_framework_release.ps1
+          -ExpectedVersion "${{ steps.metadata.outputs.version }}"
+          -GodotExecutable "${{ steps.godot.outputs.executable }}"
+          -OutputDirectory "${{ github.workspace }}\builds"
+
+      - name: Upload validated release assets
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-framework-${{ steps.metadata.outputs.version }}
+          if-no-files-found: error
+          path: |
+            builds/godot-framework-${{ steps.metadata.outputs.version }}.zip
+            builds/godot-framework-${{ steps.metadata.outputs.version }}.zip.sha256
+
+  publish:
+    name: Publish Framework release
+    if: github.ref_type == 'tag'
+    needs: validate
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-framework-${{ needs.validate.outputs.version }}
+          path: release-assets
+
+      - name: Create, verify, and publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tag = $env:GITHUB_REF_NAME
+          $version = "${{ needs.validate.outputs.version }}"
+          $zipName = "godot-framework-$version.zip"
+          $zipPath = Join-Path "release-assets" $zipName
+          $checksumPath = "$zipPath.sha256"
+          $expectedAssets = @($zipName, "$zipName.sha256")
+          foreach ($path in @($zipPath, $checksumPath)) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              throw "Validated release asset is missing: $path"
+            }
+          }
+
+          $existingJson = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" 2>$null
+          $lookupExitCode = $LASTEXITCODE
+          if ($lookupExitCode -eq 0) {
+            $existing = $existingJson | ConvertFrom-Json
+            if (-not $existing.draft) {
+              throw "A published release already exists for $tag and cannot be overwritten."
+            }
+            gh release upload $tag $zipPath $checksumPath --clobber --repo $env:GITHUB_REPOSITORY
+          } else {
+            gh release create $tag $zipPath $checksumPath --draft --verify-tag `
+              --title "Godot Framework $tag" --generate-notes --repo $env:GITHUB_REPOSITORY
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to create or update the draft release."
+          }
+
+          $release = gh release view $tag --repo $env:GITHUB_REPOSITORY `
+            --json isDraft,isPrerelease,assets | ConvertFrom-Json
+          if (-not $release.isDraft -or $release.isPrerelease) {
+            throw "The release must remain a stable draft until asset verification finishes."
+          }
+          $actualAssetNames = @($release.assets | ForEach-Object { $_.name })
+          $assetDifferences = Compare-Object $expectedAssets $actualAssetNames -CaseSensitive
+          if ($assetDifferences) {
+            throw "The draft release does not contain exactly the two expected assets."
+          }
+          foreach ($asset in $release.assets) {
+            $localPath = Join-Path "release-assets" $asset.name
+            $localDigest = (Get-FileHash -LiteralPath $localPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($asset.digest -ne "sha256:$localDigest") {
+              throw "GitHub asset digest does not match the local file: $($asset.name)"
+            }
+          }
+
+          gh release edit $tag --draft=false --prerelease=false --latest `
+            --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) {
+            throw "Asset verification passed, but publishing the release failed."
+          }

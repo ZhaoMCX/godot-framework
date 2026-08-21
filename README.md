@@ -23,7 +23,8 @@ Feature/Module 引用美术并加入业务节点后形成的场景归各自 `sce
 首次安装时将 Release ZIP 中的 `addons/godot_framework` 放入目标 Godot 项目。升级时必须整目录替换，
 不得合并覆盖。Framework 不包含需要启用的 EditorPlugin；等待脚本导入完成后即可使用 `GF` 前缀类型。
 
-当前版本：`0.1.1`，兼容 Godot `4.7.1`。从该版本开始，插件内提供面向编码 Agent 的
+当前版本与 Godot 兼容版本以插件内的 [`version.cfg`](addons/godot_framework/version.cfg) 为准。
+从 `v0.1.1` 开始，插件内提供面向编码 Agent 的
 [一句话更新协议](addons/godot_framework/docs/update.md)。
 
 本仓库从 `ZhaoMCX/godot-framework-legacy@b6cd12b` 建立干净基线。
